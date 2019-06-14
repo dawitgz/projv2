@@ -1,12 +1,20 @@
 """
     This is a catalog application I wrote as part of a coding bootcamp class.
-    It is should allow you to view and edit a catalog page and uses sqlalchemy and flask.
+    It is should allow you to view and edit a catalog page and uses
+    sqlalchemy and flask.
 """
 import random
 import string
 import json
 
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import (
+                Flask,
+                render_template,
+                request,
+                redirect,
+                jsonify,
+                url_for,
+                flash)
 from flask import session as login_session
 from flask import make_response
 
@@ -22,11 +30,15 @@ import httplib2
 from database_setup import Base, Category, SportItem, User
 
 
-CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web']['client_id']
+CLIENT_ID = json.loads(
+                        open('client_secrets.json', 'r')
+                        .read())['web']['client_id']
 
 app = Flask(__name__)
 
-engine = create_engine('sqlite:///catalog.db', connect_args={'check_same_thread': False})
+engine = create_engine(
+                        'sqlite:///catalog.db',
+                        connect_args={'check_same_thread': False})
 
 Base.metadata.bind = engine
 
@@ -45,14 +57,20 @@ def showCatalog():
     user = None
     if 'username' in login_session:
         user = login_session['username']
-    return render_template('showCatalog.html', categories=categories, latest_items=latest_items, user=user)
+    return render_template(
+                            'showCatalog.html',
+                            categories=categories,
+                            latest_items=latest_items, user=user)
+
 
 @app.route('/login')
 def showLogin():
     ''' Renders the Login Template '''
-    state = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                    for x in xrange(32))
     login_session['state'] = state
     return render_template('login.html', STATE=state)
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -82,7 +100,7 @@ def gconnect():
            % access_token)
     http = httplib2.Http()
     result = json.loads(http.request(url, 'GET')[1])
-        # If there was an error in the access token info, abort.
+    # If there was an error in the access token info, abort.
     if result.get('error') is not None:
         response = make_response(json.dumps(result.get('error')), 500)
         response.headers['Content-Type'] = 'application/json'
@@ -107,8 +125,9 @@ def gconnect():
     stored_access_token = login_session.get('access_token')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_access_token is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
-                                 200)
+        response = make_response(
+                            json.dumps('Current user is already connected.'),
+                            200)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -139,11 +158,14 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;\
-                            -webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px; height: 300px;\
+                            border-radius: 150px;\
+                            -webkit-border-radius: 150px;\
+                            -moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
+
 
 @app.route('/gdisconnect')
 def gdisconnect():
@@ -151,13 +173,14 @@ def gdisconnect():
     access_token = login_session.get('access_token')
     if access_token is None:
         print 'Access Token is None'
-        response = make_response(json.dumps('Current user not connected.'), 401)
+        response = make_response(json.dumps('User not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: '
     print login_session['username']
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' \
+        % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
     print 'result is '
@@ -172,13 +195,15 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
     else:
-        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
+        response = make_response(json.dumps('Failed to revoke token for given\
+                                user.', 400))
         response.headers['Content-Type'] = 'application/json'
         return response
 
+
 def createUser(user_session):
     ''' Creates a user '''
-    new_user = User(name=user_session['username'], email=user_session['email'], \
+    new_user = User(name=user_session['username'], email=user_session['email'],
                     picture=user_session['picture'])
     session.add(new_user)
     session.commit()
@@ -197,7 +222,7 @@ def getUserID(email):
     try:
         user = session.query(User).filter_by(email=email).first()
         return user.id
-    except:
+    except sqlalchemy.orm.exc.NoResultFound:
         return None
 
 
@@ -205,12 +230,19 @@ def getUserID(email):
 def showCategoryItems(category_name):
     ''' Queries and displays category items for a given category group '''
     category = session.query(Category).filter_by(name=category_name).one()
-    category_items = session.query(SportItem).filter_by(category_id=category.id).all()
+    category_items = session.query(SportItem).filter_by(
+                    category_id=category.id).all()
 
-    return render_template('showCategoryItems.html', categories=categories, \
-                        category_items=category_items, selected_category=category.name)
+    return render_template(
+                'showCategoryItems.html',
+                categories=categories,
+                category_items=category_items,
+                selected_category=category.name)
 
-@app.route('/catalog/<string:category_name>/items/new/', methods=['POST', 'GET'])
+
+@app.route(
+            '/catalog/<string:category_name>/items/new/',
+            methods=['POST', 'GET'])
 def createCategoryItem(category_name):
     ''' Creates an item inside a given category '''
     if 'username' not in login_session:
@@ -220,8 +252,9 @@ def createCategoryItem(category_name):
     if request.method == 'GET':
         return render_template('createCategoryItem.html', category=category)
 
-    newitem = SportItem(name=request.form['name'], description=request.form['description'], \
-                category=category, user_id=login_session['user_id'])
+    newitem = SportItem(name=request.form['name'],
+                        description=request.form['description'],
+                        category=category, user_id=login_session['user_id'])
     session.add(newitem)
     session.commit()
 
@@ -237,15 +270,19 @@ def addItem():
     if request.method == 'GET':
         return render_template('addItem.html', categories=categories)
 
-    category = session.query(Category).filter_by(name=str(request.form.get('selectedcategory')))\
-                    .one()
+    category = session.query(Category).filter_by(
+                    name=str(request.form.get('selectedcategory'))
+                    ).one()
     user = session.query(User).filter_by(email=login_session['email']).one()
-    newitem = SportItem(name=request.form['name'], description=request.form['description'], \
-                    category=category, user=user)
+    newitem = SportItem(name=request.form['name'],
+                        description=request.form['description'],
+                        category=category, user=user)
     session.add(newitem)
     session.commit()
 
-    return redirect(url_for('showCategoryItems', category_name=category.name))
+    return redirect(url_for('showCategoryItems',
+                    category_name=category.name))
+
 
 @app.route('/catalog/json')
 def showJsonCategoryItems():
@@ -253,32 +290,44 @@ def showJsonCategoryItems():
     all_items = session.query(SportItem).all()
 
     return jsonify(Items=[i.serialize for i in all_items])
-        # return jsonify(Category=[i.serialize for i in [session.query(SportItem)\
-        #        .filter_by(category=c).all() for c in all_categories]])
+
 
 @app.route('/catalog/<int:category_id>/<int:item_id>/json/')
 def showJsonItem(category_id, item_id):
     ''' Returns a json detail of a specific item inside a category '''
-    item = session.query(SportItem).filter_by(category_id=category_id).filter_by(id=item_id).one()
+    item = session.query(SportItem)\
+        .filter_by(category_id=category_id)\
+        .filter_by(id=item_id).one()
 
     return jsonify(Item=item.serialize)
+
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
 def showItem(category_name, item_name):
     ''' Queries and displays a an item in a certain category '''
-    category = session.query(Category).filter_by(name=category_name).one()
-    item = session.query(SportItem).filter_by(category=category).filter_by(name=item_name).first()
+    category = session.query(Category)\
+        .filter_by(name=category_name).one()
+    item = session.query(SportItem)\
+        .filter_by(category=category)\
+        .filter_by(name=item_name).first()
     creator = getUserInfo(item.user_id)
 
-    if ('username' not in login_session) or (('email' in login_session) \
-                and (login_session['email'] != creator.email)):
-        return render_template('publicshowItem.html', item=item)
+    loggedIn = False
+    if ('username' in login_session and login_session['email'] != creator.email)):
+        loggedIn = True
+
+    if (('username' not in login_session) or
+            (('email' in login_session)
+                and (login_session['email'] != creator.email))):
+        return render_template('showItem.html', item=item, loggedIn=loggedIn)
 
     print(login_session, creator.id)
     return render_template('showItem.html', item=item, creator=creator)
 
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/edit/', methods=['POST', 'GET'])
+@app.route(
+        '/catalog/<string:category_name>/<string:item_name>/edit/',
+        methods=['POST', 'GET'])
 def editItem(category_name, item_name):
     ''' Allows you to edit an item inside a category '''
     if 'username' not in login_session:
@@ -286,41 +335,55 @@ def editItem(category_name, item_name):
 
     item = session.query(SportItem).filter_by(name=item_name).one()
     creator = getUserInfo(item.user_id)
-    if ('username' not in login_session) or (('email' in login_session) \
-                and (login_session['email'] != creator.email)):
+    if ('username' not in login_session) or (
+            ('email' in login_session)
+            and (login_session['email'] != creator.email)):
         return redirect('/login')
 
     if request.method == 'GET':
-        return render_template('editItem.html', item=item, categories=categories, \
-                    category_name=category_name, item_name=item_name)
+        return render_template(
+                            'editItem.html',
+                            item=item, categories=categories,
+                            category_name=category_name,
+                            item_name=item_name
+                        )
 
     item.name = request.form['name']
     item.description = request.form['description']
-    category = session.query(Category).filter_by(name=str(request.form.get('categoryname'))).one()
+    category = session.query(Category).filter_by(
+                    name=str(request.form.get('categoryname'))
+                ).one()
     item.category = category
     session.add(item)
     session.commit()
     return redirect(url_for('showCategoryItems', category_name=category_name))
 
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/delete/', methods=['POST', 'GET'])
+@app.route(
+            '/catalog/<string:category_name>/<string:item_name>/delete/',
+            methods=['POST', 'GET']
+        )
 def deleteItem(category_name, item_name):
     ''' Lets you confirm and delete an item for a category '''
     item = session.query(SportItem).filter_by(name=item_name).first()
     creator = getUserInfo(item.user_id)
-    if ('username' not in login_session) or (('email' in login_session) \
-                and (login_session['email'] != creator.email)):
+    if ('username' not in login_session) or (
+            ('email' in login_session) and
+            (login_session['email'] != creator.email)):
         return redirect('/login')
 
     if request.method == 'GET':
-        return render_template('deleteItem.html', item_name=item.name, category_name=category_name)
+        return render_template(
+                            'deleteItem.html',
+                            item_name=item.name,
+                            category_name=category_name)
 
     session.delete(item)
     session.commit()
     return redirect(url_for('showCategoryItems', category_name=category_name))
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     app.secret_key = 'secret_key'
     app.debug = True
     app.run(host='0.0.0.0', port=8000)

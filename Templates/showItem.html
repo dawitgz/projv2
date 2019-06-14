@@ -9,10 +9,12 @@
 	{{ item.description }}
 </p>
 
+{% if loggedIn %}
 <a href="{{ url_for('editItem', category_name=item.category.name, item_name=item.name) }}">Edit</a> 
 | 
 <a href="{{ url_for('deleteItem', category_name=item.category.name, item_name=item.name) }}">Delete</a> 
 |
+{% endif %}
 <a href="{{ url_for('showCategoryItems', category_name = item.category.name) }}">Cancel</a>
 <br/><br/>Created by {{creator.name}} (you)
 </body>

@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
+
 class User(Base):
     ''' Defines User '''
     __tablename__ = 'user'
@@ -21,9 +22,11 @@ class User(Base):
     def serialize(self):
         ''' Serializes a user object for json response '''
         return {
-            'name' : self.name,
-            'email' : self.email
+            'id': self.id,
+            'name': self.name,
+            'email': self.email
         }
+
 
 class Category(Base):
     ''' Specifies Category '''
@@ -35,7 +38,10 @@ class Category(Base):
     @property
     def serialize(self):
         ''' Serializes a category object for json response. '''
-        return self.name
+        return {
+            'id': self.id,
+            'name': self.name
+        }
 
 class SportItem(Base):
     ''' Specifies Item within a sports category '''
@@ -46,7 +52,13 @@ class SportItem(Base):
     description = Column(String(500))
 
     category_id = Column(Integer, ForeignKey('category.id'))
-    category = relationship(Category, backref=backref("sportitem", cascade="all, delete-orphan"))
+    category = relationship(
+                Category,
+                backref=backref(
+                        "sportitem",
+                        cascade="all, delete-orphan"
+                    )
+                )
 
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -55,12 +67,13 @@ class SportItem(Base):
     def serialize(self):
         ''' Serializes a sports item object for json response. '''
         return {
-            'id' : self.id,
-            'name' : self.name,
-            'description' : self.description,
-            'user' : self.user.serialize,
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'user': self.user.serialize,
             'category': self.category.serialize
         }
+
 
 engine = create_engine('sqlite:///catalog.db')
 
