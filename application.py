@@ -20,6 +20,7 @@ from flask import make_response
 
 import requests
 
+import sqlalchemy
 from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
 
@@ -67,7 +68,7 @@ def showCatalog():
 def showLogin():
     ''' Renders the Login Template '''
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                    for x in xrange(32))
+                    for x in range(32))
     login_session['state'] = state
     return render_template('login.html', STATE=state)
 
@@ -118,7 +119,7 @@ def gconnect():
     if result['issued_to'] != CLIENT_ID:
         response = make_response(
             json.dumps("Token's client ID does not match app's."), 401)
-        print "Token's client ID does not match app's."
+        print("Token's client ID does not match app's.")
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -163,7 +164,7 @@ def gconnect():
                             -webkit-border-radius: 150px;\
                             -moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
-    print "done!"
+    print("done!")
     return output
 
 
@@ -172,19 +173,19 @@ def gdisconnect():
     ''' Function used to log out a Google user that is already signed in '''
     access_token = login_session.get('access_token')
     if access_token is None:
-        print 'Access Token is None'
+        print('Access Token is None')
         response = make_response(json.dumps('User not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    print 'In gdisconnect access token is %s', access_token
-    print 'User name is: '
-    print login_session['username']
+    print('In gdisconnect access token is %s', access_token)
+    print('User name is: ')
+    print(login_session['username'])
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' \
         % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-    print 'result is '
-    print result
+    print('result is ')
+    print(result)
     if result['status'] == '200':
         del login_session['access_token']
         del login_session['gplus_id']
@@ -220,7 +221,7 @@ def getUserInfo(user_id):
 def getUserID(email):
     ''' Given an email, returns a user ID or None '''
     try:
-        user = session.query(User).filter_by(email=email).first()
+        user = session.query(User).filter_by(email=email).one()
         return user.id
     except sqlalchemy.orm.exc.NoResultFound:
         return None
@@ -312,17 +313,17 @@ def showItem(category_name, item_name):
         .filter_by(name=item_name).first()
     creator = getUserInfo(item.user_id)
 
-    loggedIn = False
-    if ('username' in login_session and login_session['email'] != creator.email)):
-        loggedIn = True
+    owner = False
+    if ('username' in login_session) and (login_session['email'] == creator.email):
+        owner = True
 
     if (('username' not in login_session) or
             (('email' in login_session)
                 and (login_session['email'] != creator.email))):
-        return render_template('showItem.html', item=item, loggedIn=loggedIn)
+        return render_template('showItem.html', item=item, owner=owner, creator=creator)
 
     print(login_session, creator.id)
-    return render_template('showItem.html', item=item, creator=creator)
+    return render_template('showItem.html', item=item, owner=owner, creator=creator)
 
 
 @app.route(
